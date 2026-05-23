@@ -784,7 +784,7 @@ CMC 24H Volume: ${s['cmc_volume_24h']:,.0f}
 """
 
     return f"""
-🟢 <b>EARLY REVERSAL ALERT | 4H</b>
+🟢 <b>EARLY REVERSAL ALERT | {TIMEFRAME}</b>
 ━━━━━━━━━━━━━━
 ⏰ الوقت: {now}
 🏦 المنصة: <b>{s['exchange']}</b>
@@ -843,8 +843,7 @@ def startup_message():
     exchange_text = "\n".join([f"• {x}" for x in exchanges])
 
     msg = f"""
-🤖 <b>بوت Early Reversal 4H اشتغل بنجاح ✅</b>
-
+🤖 <b>بوت Early Reversal {TIMEFRAME} اشتغل بنجاح ✅</b>
 ━━━━━━━━━━━━━━
 📊 الفريم: <b>{TIMEFRAME}</b>
 ⏱️ الفحص كل: <b>{CHECK_INTERVAL} ثانية</b>
