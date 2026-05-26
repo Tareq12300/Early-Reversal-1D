@@ -869,6 +869,13 @@ def format_multi_exchange_signal(signals):
         )
     exchange_text = "\n".join(exchanges)
 
+    stoch_lines = []
+    for s in signals:
+        stoch_lines.append(
+            f"• {s['exchange']} → K: {s['k']:.2f} | D: {s['d']:.2f}"
+        )
+    stoch_by_exchange_text = "\n".join(stoch_lines)
+
     avg_price = sum(s["price"] for s in signals) / len(signals)
     avg_k = sum(s["k"] for s in signals) / len(signals)
     avg_d = sum(s["d"] for s in signals) / len(signals)
@@ -909,9 +916,12 @@ CMC 24H Volume: {format_money(best['cmc_volume_24h'])}
 💰 متوسط سعر الدخول: <b>{avg_price:.8f}</b>
 
 📈 <b>Stoch RSI</b>
-K: {avg_k:.2f}
-D: {avg_d:.2f}
+K المتوسط: {avg_k:.2f}
+D المتوسط: {avg_d:.2f}
 الحالة: Oversold Reversal ✅
+
+📈 <b>Stoch RSI By Exchange</b>
+{stoch_by_exchange_text}
 
 📈 <b>MACD Histogram</b>
 الحالة: تحول من سالب إلى موجب ✅
