@@ -994,8 +994,7 @@ def startup_message():
     exchange_text = "\n".join([f"• {x}" for x in exchanges])
 
     msg = f"""
-🤖 <b>بوت Early Reversal 4H اشتغل بنجاح ✅</b>
-
+🤖 <b>بوت Early Reversal {TIMEFRAME.upper()} اشتغل بنجاح ✅</b>
 ━━━━━━━━━━━━━━
 📊 الفريم: <b>{TIMEFRAME}</b>
 ⏱️ الفحص كل: <b>{CHECK_INTERVAL} ثانية</b>
