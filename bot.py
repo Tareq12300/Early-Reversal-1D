@@ -7,88 +7,63 @@ from datetime import datetime
 from flask import Flask
 from threading import Thread
 
-# ============================================================
-# ENV HELPERS
-# ============================================================
-def env_str(name, default=""):
-    return os.getenv(name, default).strip()
-
-def env_int(name, default):
-    try:
-        return int(os.getenv(name, str(default)))
-    except Exception:
-        return default
-
-def env_float(name, default):
-    try:
-        return float(os.getenv(name, str(default)))
-    except Exception:
-        return default
-
-def env_bool(name, default=False):
-    return os.getenv(name, "true" if default else "false").strip().lower() in ["true", "1", "yes", "y"]
-
-# ============================================================
+# =========================
 # ENV SETTINGS
-# ============================================================
-TELEGRAM_BOT_TOKEN = env_str("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT_ID = env_str("TELEGRAM_CHAT_ID", env_str("TELEGRAM_CHANNEL_ID", ""))
+# =========================
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
-CMC_API_KEY = env_str("CMC_API_KEY", "")
-USE_CMC_FILTER = env_bool("USE_CMC_FILTER", True)
-CMC_TOP_N = env_int("CMC_TOP_N", 1000)
-MIN_MARKET_CAP = env_float("MIN_MARKET_CAP", 0)
-MAX_MARKET_CAP = env_float("MAX_MARKET_CAP", 1000000000)
+CMC_API_KEY = os.getenv("CMC_API_KEY", "")
+USE_CMC_FILTER = os.getenv("USE_CMC_FILTER", "true").lower() == "true"
+CMC_TOP_N = int(os.getenv("CMC_TOP_N", "1000"))
+MIN_MARKET_CAP = float(os.getenv("MIN_MARKET_CAP", "0"))
+MAX_MARKET_CAP = float(os.getenv("MAX_MARKET_CAP", "1000000000"))
 
-CHECK_INTERVAL = env_int("CHECK_INTERVAL", 900)
-TIMEFRAME = env_str("TIMEFRAME", "4h")
-MAX_COINS = env_int("MAX_COINS", 300)
+CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "900"))
+TIMEFRAME = os.getenv("TIMEFRAME", "4h")
+MAX_COINS = int(os.getenv("MAX_COINS", "300"))
 
-MAX_RSI_BUY = env_float("MAX_RSI_BUY", 40)
-MIN_VOLUME_RATIO = env_float("MIN_VOLUME_RATIO", 1.0)
-MIN_VOLUME_USDT = env_float("MIN_VOLUME_USDT", 50000)
-MIN_CURRENT_CANDLE_VOLUME = env_float("MIN_CURRENT_CANDLE_VOLUME", 8000)
-VOLUME_LOOKBACK = env_int("VOLUME_LOOKBACK", 20)
-MAX_24H_CHANGE = env_float("MAX_24H_CHANGE", 25)
+MAX_RSI_BUY = float(os.getenv("MAX_RSI_BUY", "40"))
+MIN_VOLUME_RATIO = float(os.getenv("MIN_VOLUME_RATIO", "1.0"))
+MIN_VOLUME_USDT = float(os.getenv("MIN_VOLUME_USDT", "50000"))
+MIN_CURRENT_CANDLE_VOLUME = float(os.getenv("MIN_CURRENT_CANDLE_VOLUME", "8000"))
+VOLUME_LOOKBACK = int(os.getenv("VOLUME_LOOKBACK", "20"))
+MAX_24H_CHANGE = float(os.getenv("MAX_24H_CHANGE", "25"))
 
-RSI_PERIOD = env_int("RSI_PERIOD", 14)
-STOCH_PERIOD = env_int("STOCH_PERIOD", 14)
-K_SMOOTH = env_int("K_SMOOTH", 3)
-D_SMOOTH = env_int("D_SMOOTH", 3)
+RSI_PERIOD = int(os.getenv("RSI_PERIOD", "14"))
+STOCH_PERIOD = int(os.getenv("STOCH_PERIOD", "14"))
+K_SMOOTH = int(os.getenv("K_SMOOTH", "3"))
+D_SMOOTH = int(os.getenv("D_SMOOTH", "3"))
 
-REQUIRE_MACD_RISING = env_bool("REQUIRE_MACD_RISING", True)
-REQUIRE_MACD_POSITIVE = env_bool("REQUIRE_MACD_POSITIVE", True)
+REQUIRE_MACD_RISING = os.getenv("REQUIRE_MACD_RISING", "true").lower() == "true"
+REQUIRE_MACD_POSITIVE = os.getenv("REQUIRE_MACD_POSITIVE", "true").lower() == "true"
 
-# الجديد: لا يقبل MACD إلا إذا تحول من سالب إلى موجب
-REQUIRE_MACD_JUST_TURNED_POSITIVE = env_bool("REQUIRE_MACD_JUST_TURNED_POSITIVE", False)
+SIGNAL_COOLDOWN_HOURS = int(os.getenv("SIGNAL_COOLDOWN_HOURS", "6"))
 
-# الجديد: تأكيد الإشارة من أكثر من منصة
-MIN_EXCHANGE_CONFIRMATIONS = env_int(
-    "MIN_EXCHANGE_CONFIRMATIONS",
-    env_int("MIN_EXCHANGES_CONFIRMATION", 2)
-)
-# الجديد/المعدل: منع تكرار نفس العملة
-SIGNAL_COOLDOWN_HOURS = env_int("SIGNAL_COOLDOWN_HOURS", env_int("COOLDOWN_HOURS", 6))
+# Multi-exchange confirmation settings
+MIN_EXCHANGE_CONFIRMATIONS = int(os.getenv("MIN_EXCHANGE_CONFIRMATIONS", "2"))
+MULTI_EXCHANGE_WINDOW_MINUTES = int(os.getenv("MULTI_EXCHANGE_WINDOW_MINUTES", "60"))
+MULTI_EXCHANGE_GLOBAL_COOLDOWN_HOURS = int(os.getenv("MULTI_EXCHANGE_GLOBAL_COOLDOWN_HOURS", "6"))
 
-ENABLE_GATE = env_bool("ENABLE_GATE", True)
-ENABLE_MEXC = env_bool("ENABLE_MEXC", True)
-ENABLE_KUCOIN = env_bool("ENABLE_KUCOIN", True)
-ENABLE_OKX = env_bool("ENABLE_OKX", True)
-ENABLE_BYBIT = env_bool("ENABLE_BYBIT", True)
-ENABLE_BITGET = env_bool("ENABLE_BITGET", True)
+ENABLE_GATE = os.getenv("ENABLE_GATE", "true").lower() == "true"
+ENABLE_MEXC = os.getenv("ENABLE_MEXC", "true").lower() == "true"
+ENABLE_KUCOIN = os.getenv("ENABLE_KUCOIN", "true").lower() == "true"
+ENABLE_OKX = os.getenv("ENABLE_OKX", "true").lower() == "true"
+ENABLE_BYBIT = os.getenv("ENABLE_BYBIT", "true").lower() == "true"
+ENABLE_BITGET = os.getenv("ENABLE_BITGET", "true").lower() == "true"
 
-# ============================================================
+# =========================
 # FLASK
-# ============================================================
+# =========================
 app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return f"Early Reversal Bot {TIMEFRAME} is running ✅"
+    return "Early Reversal Bot 4H is running ✅"
 
-# ============================================================
-# FILTERS / GLOBALS
-# ============================================================
+# =========================
+# FILTERS
+# =========================
 EXCLUDED_KEYWORDS = [
     "3L", "3S", "5L", "5S", "BULL", "BEAR",
     "UP", "DOWN", "LONG", "SHORT",
@@ -100,15 +75,17 @@ EXCLUDED_KEYWORDS = [
 ]
 
 sent_signals = {}
+global_sent_signals = {}
+pending_multi_signals = {}
 cmc_allowed_symbols = {}
 last_cmc_update = 0
 
 # الصفقات المفتوحة لمتابعة الأهداف
 active_trades = {}
 
-# ============================================================
+# =========================
 # TELEGRAM
-# ============================================================
+# =========================
 def send_telegram(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print(message)
@@ -127,9 +104,9 @@ def send_telegram(message):
     except Exception as e:
         print("Telegram Error:", e)
 
-# ============================================================
+# =========================
 # HELPERS
-# ============================================================
+# =========================
 def safe_float(x, default=0):
     try:
         return float(x)
@@ -137,29 +114,45 @@ def safe_float(x, default=0):
         return default
 
 def base_symbol(symbol):
-    s = str(symbol).upper()
+    s = symbol.upper()
     s = s.replace("_USDT", "")
     s = s.replace("-USDT", "")
-    s = s.replace("/USDT", "")
     s = s.replace("USDT", "")
     return s
 
 def normalize_symbol(symbol):
-    return str(symbol).replace("_", "/").replace("-", "/")
+    return symbol.replace("_", "/").replace("-", "/")
 
 def is_excluded(symbol):
     s = base_symbol(symbol)
     return any(x in s for x in EXCLUDED_KEYWORDS)
 
-def global_cooldown_ok(base):
+def cooldown_ok(key):
     now = time.time()
-    last = sent_signals.get(base)
+    last = sent_signals.get(key)
     if not last:
         return True
     return now - last >= SIGNAL_COOLDOWN_HOURS * 3600
 
-def mark_global_cooldown(base):
-    sent_signals[base] = time.time()
+def global_cooldown_ok(symbol_key):
+    now = time.time()
+    last = global_sent_signals.get(symbol_key)
+    if not last:
+        return True
+    return now - last >= MULTI_EXCHANGE_GLOBAL_COOLDOWN_HOURS * 3600
+
+def format_money(value):
+    try:
+        value = float(value)
+    except Exception:
+        value = 0
+    if value >= 1_000_000_000:
+        return f"${value / 1_000_000_000:.2f}B"
+    if value >= 1_000_000:
+        return f"${value / 1_000_000:.2f}M"
+    if value >= 1_000:
+        return f"${value / 1_000:.2f}K"
+    return f"${value:,.0f}"
 
 def convert_timeframe(exchange):
     tf = TIMEFRAME
@@ -185,9 +178,9 @@ def convert_timeframe(exchange):
     }
     return mapping.get(exchange, tf)
 
-# ============================================================
+# =========================
 # CMC FILTER
-# ============================================================
+# =========================
 def update_cmc_filter():
     global cmc_allowed_symbols, last_cmc_update
 
@@ -276,9 +269,9 @@ def cmc_is_allowed(symbol):
 def get_cmc_info(symbol):
     return cmc_allowed_symbols.get(base_symbol(symbol), {})
 
-# ============================================================
+# =========================
 # INDICATORS
-# ============================================================
+# =========================
 def ema(series, length):
     return series.ewm(span=length, adjust=False).mean()
 
@@ -303,9 +296,9 @@ def macd_hist(close):
     signal = ema(macd_line, 9)
     return macd_line - signal
 
-# ============================================================
+# =========================
 # EXCHANGE FUNCTIONS
-# ============================================================
+# =========================
 def gate_symbols():
     try:
         data = requests.get("https://api.gateio.ws/api/v4/spot/currency_pairs", timeout=20).json()
@@ -573,46 +566,14 @@ def bitget_candles(symbol):
     except Exception:
         return None
 
-# ============================================================
-# EXCHANGE CONFIG
-# ============================================================
-def get_enabled_exchanges():
-    exchanges = []
-
-    if ENABLE_GATE:
-        exchanges.append(("Gate", gate_symbols, gate_ticker, gate_candles))
-    if ENABLE_MEXC:
-        exchanges.append(("MEXC", mexc_symbols, mexc_ticker, mexc_candles))
-    if ENABLE_KUCOIN:
-        exchanges.append(("KuCoin", kucoin_symbols, kucoin_ticker, kucoin_candles))
-    if ENABLE_OKX:
-        exchanges.append(("OKX", okx_symbols, okx_ticker, okx_candles))
-    if ENABLE_BYBIT:
-        exchanges.append(("Bybit", bybit_symbols, bybit_ticker, bybit_candles))
-    if ENABLE_BITGET:
-        exchanges.append(("Bitget", bitget_symbols, bitget_ticker, bitget_candles))
-
-    return exchanges
-
-def get_ticker_func(exchange):
-    mapping = {
-        "Gate": gate_ticker,
-        "MEXC": mexc_ticker,
-        "KuCoin": kucoin_ticker,
-        "OKX": okx_ticker,
-        "Bybit": bybit_ticker,
-        "Bitget": bitget_ticker
-    }
-    return mapping.get(exchange)
-
-# ============================================================
+# =========================
 # TARGET ALERTS
-# ============================================================
+# =========================
 def add_active_trade(signal):
-    key = f"{signal['main_exchange']}:{signal['raw_symbol']}"
+    key = f"{signal['exchange']}:{signal['raw_symbol']}"
 
     active_trades[key] = {
-        "exchange": signal["main_exchange"],
+        "exchange": signal["exchange"],
         "raw_symbol": signal["raw_symbol"],
         "symbol": signal["symbol"],
         "entry": signal["price"],
@@ -663,6 +624,21 @@ def format_stop_loss_alert(trade, current_price):
 ⚠️ تم إغلاق متابعة هذه الإشارة.
 """
 
+def get_ticker_func(exchange):
+    if exchange == "Gate":
+        return gate_ticker
+    if exchange == "MEXC":
+        return mexc_ticker
+    if exchange == "KuCoin":
+        return kucoin_ticker
+    if exchange == "OKX":
+        return okx_ticker
+    if exchange == "Bybit":
+        return bybit_ticker
+    if exchange == "Bitget":
+        return bitget_ticker
+    return None
+
 def monitor_active_trades():
     if not active_trades:
         return
@@ -705,9 +681,9 @@ def monitor_active_trades():
     for key in closed_trades:
         active_trades.pop(key, None)
 
-# ============================================================
+# =========================
 # ANALYSIS
-# ============================================================
+# =========================
 def analyze_symbol(exchange, symbol, ticker_func, candle_func):
     if is_excluded(symbol):
         return None
@@ -720,11 +696,7 @@ def analyze_symbol(exchange, symbol, ticker_func, candle_func):
     quote_volume = ticker["quote_volume"]
     change_24h = ticker["change_24h"]
 
-    if price <= 0:
-        return None
-    if quote_volume < MIN_VOLUME_USDT:
-        return None
-    if abs(change_24h) > MAX_24H_CHANGE:
+    if price <= 0 or quote_volume < MIN_VOLUME_USDT or abs(change_24h) > MAX_24H_CHANGE:
         return None
 
     df = candle_func(symbol)
@@ -754,7 +726,7 @@ def analyze_symbol(exchange, symbol, ticker_func, candle_func):
 
     avg_volume = volume.iloc[-(VOLUME_LOOKBACK + 1):-1].mean()
 
-    if pd.isna(k_now) or pd.isna(d_now) or pd.isna(hist_now) or pd.isna(hist_prev) or avg_volume <= 0:
+    if pd.isna(k_now) or pd.isna(d_now) or pd.isna(hist_now) or avg_volume <= 0:
         return None
 
     volume_ratio = current_volume / avg_volume
@@ -763,31 +735,31 @@ def analyze_symbol(exchange, symbol, ticker_func, candle_func):
     stoch_low = k_now < MAX_RSI_BUY
     macd_rising = (hist_now > hist_prev) if REQUIRE_MACD_RISING else True
     macd_positive = (hist_now > 0) if REQUIRE_MACD_POSITIVE else True
-    macd_just_turned_positive = (hist_prev < 0 and hist_now > 0) if REQUIRE_MACD_JUST_TURNED_POSITIVE else True
     volume_ok = volume_ratio >= MIN_VOLUME_RATIO
     price_above_ema20 = current_price > ema20.iloc[-1]
 
-    if not (stoch_cross and stoch_low and macd_rising and macd_positive and macd_just_turned_positive and volume_ok):
+    if not (stoch_cross and stoch_low and macd_rising and macd_positive and volume_ok):
+        return None
+
+    key = f"{exchange}:{symbol}"
+    if not cooldown_ok(key):
         return None
 
     score = 0
     reasons = []
 
     if stoch_cross:
-        score += 20
+        score += 25
         reasons.append("✅ Stoch RSI K اخترق D")
     if stoch_low:
-        score += 15
+        score += 20
         reasons.append(f"✅ Stoch RSI تحت {MAX_RSI_BUY}")
     if macd_rising:
-        score += 15
+        score += 20
         reasons.append("✅ MACD Histogram يتحسن")
     if REQUIRE_MACD_POSITIVE and hist_now > 0:
         score += 15
         reasons.append("✅ MACD Histogram موجب")
-    if REQUIRE_MACD_JUST_TURNED_POSITIVE and hist_prev < 0 and hist_now > 0:
-        score += 20
-        reasons.append("✅ MACD تحول من سالب إلى موجب")
     if volume_ok:
         score += 15
         reasons.append(f"✅ Volume Ratio أعلى من {MIN_VOLUME_RATIO}x")
@@ -800,7 +772,6 @@ def analyze_symbol(exchange, symbol, ticker_func, candle_func):
     return {
         "exchange": exchange,
         "raw_symbol": symbol,
-        "base": base_symbol(symbol),
         "symbol": normalize_symbol(symbol),
         "price": current_price,
         "k": k_now,
@@ -812,7 +783,7 @@ def analyze_symbol(exchange, symbol, ticker_func, candle_func):
         "volume_ratio": volume_ratio,
         "quote_volume": quote_volume,
         "change_24h": change_24h,
-        "score": min(score, 100),
+        "score": score,
         "reasons": reasons,
         "tp1": current_price * 1.03,
         "tp2": current_price * 1.06,
@@ -824,149 +795,202 @@ def analyze_symbol(exchange, symbol, ticker_func, candle_func):
         "cmc_volume_24h": cmc.get("volume_24h", 0)
     }
 
-# ============================================================
-# MULTI EXCHANGE CONFIRMATION
-# ============================================================
-def collect_confirmed_signals():
-    all_signals_by_base = {}
-    exchanges = get_enabled_exchanges()
+def register_multi_exchange_signal(signal):
+    symbol_key = base_symbol(signal["raw_symbol"])
+    now_ts = time.time()
+    window_seconds = MULTI_EXCHANGE_WINDOW_MINUTES * 60
 
-    for name, symbols_func, ticker_func, candle_func in exchanges:
-        try:
-            symbols = symbols_func()
-            print(f"Scanning {name}: {len(symbols)} symbols")
+    if symbol_key not in pending_multi_signals:
+        pending_multi_signals[symbol_key] = []
 
-            found = 0
+    # Keep only recent signals inside the confirmation window
+    pending_multi_signals[symbol_key] = [
+        x for x in pending_multi_signals[symbol_key]
+        if now_ts - x.get("detected_at", now_ts) <= window_seconds
+    ]
 
-            for symbol in symbols:
-                signal = analyze_symbol(name, symbol, ticker_func, candle_func)
-                if signal:
-                    base = signal["base"]
-                    if base not in all_signals_by_base:
-                        all_signals_by_base[base] = []
-                    all_signals_by_base[base].append(signal)
-                    found += 1
+    # Avoid duplicate exchange entries for the same coin inside the same window
+    pending_multi_signals[symbol_key] = [
+        x for x in pending_multi_signals[symbol_key]
+        if x.get("exchange") != signal.get("exchange")
+    ]
 
-                time.sleep(0.15)
+    signal["detected_at"] = now_ts
+    pending_multi_signals[symbol_key].append(signal)
 
-            print(f"{name} scan finished. Raw signals: {found}")
+    return symbol_key, pending_multi_signals[symbol_key]
 
-        except Exception as e:
-            print(f"{name} scan error:", e)
+def calculate_multi_score(signals):
+    if not signals:
+        return 0
 
-    confirmed = []
+    exchanges_count = len({s["exchange"] for s in signals})
+    best_volume_ratio = max(s["volume_ratio"] for s in signals)
+    avg_k = sum(s["k"] for s in signals) / len(signals)
+    macd_positive_count = sum(1 for s in signals if s["macd"] > 0 and s["macd"] > s["macd_prev"])
 
-    for base, signals in all_signals_by_base.items():
-        # لا ترسل نفس العملة قبل انتهاء الكولداون حتى لو ظهرت في عدة منصات
-        if not global_cooldown_ok(base):
-            continue
+    score = 0
 
-        # عدد منصات مختلفة أكدت نفس العملة
-        unique_exchanges = sorted(list(set([s["exchange"] for s in signals])))
+    if exchanges_count >= 2:
+        score += 25
+    if exchanges_count >= 3:
+        score += 10
 
-        if len(unique_exchanges) < MIN_EXCHANGES_CONFIRMATION:
-            continue
+    if best_volume_ratio >= 2.5:
+        score += 25
+    elif best_volume_ratio >= 1.8:
+        score += 18
+    else:
+        score += 10
 
-        # اختيار أفضل منصة كسعر دخول أساسي حسب أعلى Volume Ratio ثم أعلى Score
-        signals = sorted(signals, key=lambda x: (x["volume_ratio"], x["score"]), reverse=True)
-        main = signals[0]
+    if avg_k < 20:
+        score += 20
+    elif avg_k < MAX_RSI_BUY:
+        score += 12
 
-        main["confirmations"] = signals
-        main["confirmed_exchanges"] = unique_exchanges
-        main["confirmation_count"] = len(unique_exchanges)
-        main["main_exchange"] = main["exchange"]
+    if macd_positive_count >= exchanges_count:
+        score += 20
+    elif macd_positive_count >= 1:
+        score += 12
 
-        # بونص للتأكيد المتعدد
-        if len(unique_exchanges) >= 2:
-            main["score"] = min(main["score"] + 10, 100)
-            main["reasons"].append(f"✅ تأكيد الحركة على {len(unique_exchanges)} منصات")
+    score += min(10, exchanges_count * 3)
 
-        confirmed.append(main)
-        mark_global_cooldown(base)
+    return min(score, 100)
 
-    return confirmed
-
-# ============================================================
-# FORMAT SIGNAL
-# ============================================================
-def format_confirmations(s):
-    lines = []
-    for x in s.get("confirmations", []):
-        lines.append(
-            f"✅ {x['exchange']} | السعر: {x['price']:.8f} | Volume Ratio: {x['volume_ratio']:.2f}x | MACD: {x['macd']:.8f}"
-        )
-    return "\n".join(lines)
-
-def format_signal(s):
-    reasons = "\n".join(s["reasons"])
+def format_multi_exchange_signal(signals):
+    signals = sorted(signals, key=lambda x: x["volume_ratio"], reverse=True)
+    best = signals[0]
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    confirmations_text = format_confirmations(s)
+
+    exchanges = []
+    for s in signals:
+        exchanges.append(
+            f"• {s['exchange']} | السعر: {s['price']:.8f} | Volume Ratio: {s['volume_ratio']:.2f}x"
+        )
+    exchange_text = "\n".join(exchanges)
+
+    avg_price = sum(s["price"] for s in signals) / len(signals)
+    avg_k = sum(s["k"] for s in signals) / len(signals)
+    avg_d = sum(s["d"] for s in signals) / len(signals)
+    avg_volume_ratio = sum(s["volume_ratio"] for s in signals) / len(signals)
+    best_volume_ratio = max(s["volume_ratio"] for s in signals)
+
+    tp1 = avg_price * 1.03
+    tp2 = avg_price * 1.06
+    tp3 = avg_price * 1.10
+    sl = avg_price * 0.94
+
+    score = calculate_multi_score(signals)
 
     cmc_text = ""
-    if s["market_cap"]:
+    if best["market_cap"]:
         cmc_text = f"""
 🌐 <b>CoinMarketCap</b>
-الاسم: {s['cmc_name']}
-الترتيب: {s['cmc_rank']}
-Market Cap: ${s['market_cap']:,.0f}
-CMC 24H Volume: ${s['cmc_volume_24h']:,.0f}
+الاسم: {best['cmc_name']}
+الترتيب: {best['cmc_rank']}
+Market Cap: {format_money(best['market_cap'])}
+CMC 24H Volume: {format_money(best['cmc_volume_24h'])}
 """
 
     return f"""
-🟢 <b>EARLY REVERSAL ALERT | {TIMEFRAME}</b>
+🔥 <b>MULTI-EXCHANGE EARLY REVERSAL</b>
 ━━━━━━━━━━━━━━
+🪙 العملة: <b>{base_symbol(best['raw_symbol'])}/USDT</b>
 ⏰ الوقت: {now}
-🏦 منصة الدخول الأساسية: <b>{s['main_exchange']}</b>
-🪙 العملة: <b>{s['symbol']}</b>
-💰 سعر الدخول: <b>{s['price']:.8f}</b>
 
-🔥 <b>تأكيد الحركة على المنصات</b>
-عدد المنصات المؤكدة: <b>{s['confirmation_count']}</b>
-{confirmations_text}
+🏦 <b>تم رصد التحرك على {len(signals)} منصات:</b>
+{exchange_text}
 
-📊 <b>Stoch RSI</b>
-K: {s['k']:.2f}
-D: {s['d']:.2f}
+📊 <b>متوسط البيانات بين المنصات</b>
+💰 متوسط سعر الدخول: <b>{avg_price:.8f}</b>
+
+📈 <b>Stoch RSI</b>
+K: {avg_k:.2f}
+D: {avg_d:.2f}
+الحالة: Oversold Reversal ✅
 
 📈 <b>MACD Histogram</b>
-الحالي: {s['macd']:.8f}
-السابق: {s['macd_prev']:.8f}
-الحالة: موجب ويتحسن ✅
+الحالة: تحول من سالب إلى موجب ✅
+الزخم: يتحسن بقوة ✅
 
-💧 <b>Volume</b>
-حجم الشمعة الحالية: ${s['volume']:,.0f}
-متوسط آخر {VOLUME_LOOKBACK} شمعة: ${s['avg_volume']:,.0f}
-Volume Ratio: <b>{s['volume_ratio']:.2f}x</b>
-
-📊 Exchange 24H Volume: ${s['quote_volume']:,.0f}
-📈 تغير 24H: {s['change_24h']:.2f}%
+💧 <b>Volume Analysis</b>
+أعلى Volume Ratio: <b>{best_volume_ratio:.2f}x</b>
+متوسط Volume Ratio: <b>{avg_volume_ratio:.2f}x</b>
+الحالة: Smart Money Activity ✅
 {cmc_text}
 🎯 <b>الأهداف</b>
-TP1: {s['tp1']:.8f} (+3%)
-TP2: {s['tp2']:.8f} (+6%)
-TP3: {s['tp3']:.8f} (+10%)
-SL: {s['sl']:.8f} (-6%)
+TP1: {tp1:.8f} (+3%)
+TP2: {tp2:.8f} (+6%)
+TP3: {tp3:.8f} (+10%)
 
-🔔 <b>متابعة الأهداف:</b>
-سيتم إرسال تنبيه تلقائي عند تحقق كل هدف.
+🛑 <b>Stop Loss</b>
+SL: {sl:.8f} (-6%)
 
-⭐ قوة الإشارة: <b>{s['score']}%</b>
+⭐ قوة الإشارة: <b>{score}%</b>
 
-🔥 <b>أسباب التنبيه</b>
-{reasons}
+🔥 <b>أسباب قوة الإشارة</b>
+✅ نفس الحركة ظهرت على عدة منصات
+✅ MACD تحول موجب مبكر
+✅ Volume قوي
+✅ Stoch RSI منخفض جدًا
+✅ السعر قريب من EMA20
+✅ بداية انعكاس مبكرة
+
+🚨 توافق عدة منصات غالبًا يعني أن السيولة بدأت تدخل فعليًا للعملة.
 
 ⚠️ تحليل آلي فقط وليس نصيحة مالية.
 """
 
-# ============================================================
-# STARTUP MESSAGE
-# ============================================================
+def process_multi_exchange_signals(new_signals):
+    sent_count = 0
+
+    for signal in new_signals:
+        symbol_key, grouped_signals = register_multi_exchange_signal(signal)
+
+        exchanges_count = len({s["exchange"] for s in grouped_signals})
+
+        if exchanges_count < MIN_EXCHANGE_CONFIRMATIONS:
+            continue
+
+        if not global_cooldown_ok(symbol_key):
+            continue
+
+        grouped_signals = sorted(grouped_signals, key=lambda x: x["volume_ratio"], reverse=True)
+
+        send_telegram(format_multi_exchange_signal(grouped_signals))
+        global_sent_signals[symbol_key] = time.time()
+
+        # Mark each exchange pair cooldown only after the confirmed multi-exchange alert is sent
+        for s in grouped_signals:
+            sent_signals[f"{s['exchange']}:{s['raw_symbol']}"] = time.time()
+
+        # Follow targets using the strongest exchange signal
+        add_active_trade(grouped_signals[0])
+
+        sent_count += 1
+
+    return sent_count
+
 def startup_message():
-    enabled = [x[0] for x in get_enabled_exchanges()]
-    exchange_text = "\n".join([f"• {x}" for x in enabled])
+    exchanges = []
+    if ENABLE_GATE:
+        exchanges.append("Gate")
+    if ENABLE_MEXC:
+        exchanges.append("MEXC")
+    if ENABLE_KUCOIN:
+        exchanges.append("KuCoin")
+    if ENABLE_OKX:
+        exchanges.append("OKX")
+    if ENABLE_BYBIT:
+        exchanges.append("Bybit")
+    if ENABLE_BITGET:
+        exchanges.append("Bitget")
+
+    exchange_text = "\n".join([f"• {x}" for x in exchanges])
 
     msg = f"""
-🤖 <b>بوت Early Reversal {TIMEFRAME} اشتغل بنجاح ✅</b>
+🤖 <b>بوت Early Reversal 4H اشتغل بنجاح ✅</b>
+
 ━━━━━━━━━━━━━━
 📊 الفريم: <b>{TIMEFRAME}</b>
 ⏱️ الفحص كل: <b>{CHECK_INTERVAL} ثانية</b>
@@ -985,12 +1009,11 @@ Max Market Cap: ${MAX_MARKET_CAP:,.0f}
 • Stoch RSI أقل من {MAX_RSI_BUY}
 • MACD Histogram يتحسن: {'مطلوب ✅' if REQUIRE_MACD_RISING else 'غير مطلوب ❌'}
 • MACD Histogram موجب: {'مطلوب ✅' if REQUIRE_MACD_POSITIVE else 'غير مطلوب ❌'}
-• MACD تحول من سالب إلى موجب: {'مطلوب ✅' if REQUIRE_MACD_JUST_TURNED_POSITIVE else 'غير مطلوب ❌'}
 • Volume Ratio أعلى من {MIN_VOLUME_RATIO}x
 • حجم الشمعة الحالية أعلى من ${MIN_CURRENT_CANDLE_VOLUME:,.0f}
 • 24H Change أقل من {MAX_24H_CHANGE}%
-• تأكيد الإشارة من عدد منصات: {MIN_EXCHANGES_CONFIRMATION}
-• Cooldown لنفس العملة: {SIGNAL_COOLDOWN_HOURS} ساعة
+• تأكيد الإشارة من عدد منصات: {MIN_EXCHANGE_CONFIRMATIONS}
+• نافذة توافق المنصات: {MULTI_EXCHANGE_WINDOW_MINUTES} دقيقة
 
 🎯 <b>متابعة الأهداف:</b>
 • TP1 +3%
@@ -1002,9 +1025,27 @@ Max Market Cap: ${MAX_MARKET_CAP:,.0f}
 """
     send_telegram(msg)
 
-# ============================================================
-# MAIN LOOP
-# ============================================================
+def scan_exchange(name, symbols_func, ticker_func, candle_func):
+    signals = []
+
+    try:
+        symbols = symbols_func()
+        print(f"Scanning {name}: {len(symbols)} symbols")
+
+        for symbol in symbols:
+            signal = analyze_symbol(name, symbol, ticker_func, candle_func)
+            if signal:
+                signals.append(signal)
+                print(f"Candidate Found: {name} {symbol}")
+            time.sleep(0.15)
+
+        print(f"{name} scan finished. Candidates: {len(signals)}")
+
+    except Exception as e:
+        print(f"{name} scan error:", e)
+
+    return signals
+
 def scanner_loop():
     startup_message()
 
@@ -1012,20 +1053,28 @@ def scanner_loop():
         try:
             update_cmc_filter()
 
-            # متابعة الأهداف أولاً
             monitor_active_trades()
 
-            # تجميع الإشارات من كل المنصات ثم إرسال المؤكد منها فقط
-            confirmed_signals = collect_confirmed_signals()
+            all_signals = []
 
-            for signal in confirmed_signals:
-                send_telegram(format_signal(signal))
-                add_active_trade(signal)
-                print(f"Confirmed Signal Sent: {signal['base']} on {signal['confirmation_count']} exchanges")
+            if ENABLE_GATE:
+                all_signals.extend(scan_exchange("Gate", gate_symbols, gate_ticker, gate_candles))
+            if ENABLE_MEXC:
+                all_signals.extend(scan_exchange("MEXC", mexc_symbols, mexc_ticker, mexc_candles))
+            if ENABLE_KUCOIN:
+                all_signals.extend(scan_exchange("KuCoin", kucoin_symbols, kucoin_ticker, kucoin_candles))
+            if ENABLE_OKX:
+                all_signals.extend(scan_exchange("OKX", okx_symbols, okx_ticker, okx_candles))
+            if ENABLE_BYBIT:
+                all_signals.extend(scan_exchange("Bybit", bybit_symbols, bybit_ticker, bybit_candles))
+            if ENABLE_BITGET:
+                all_signals.extend(scan_exchange("Bitget", bitget_symbols, bitget_ticker, bitget_candles))
+
+            multi_sent = process_multi_exchange_signals(all_signals)
 
             monitor_active_trades()
 
-            print(f"Full scan finished. Confirmed signals: {len(confirmed_signals)}")
+            print(f"Full scan finished. Candidates: {len(all_signals)} | Multi alerts sent: {multi_sent}")
 
         except Exception as e:
             print("Main scanner error:", e)
@@ -1034,4 +1083,4 @@ def scanner_loop():
 
 if __name__ == "__main__":
     Thread(target=scanner_loop, daemon=True).start()
-    app.run(host="0.0.0.0", port=env_int("PORT", 8080))
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "8080")))
