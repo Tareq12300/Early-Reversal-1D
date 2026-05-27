@@ -20,7 +20,7 @@ MIN_MARKET_CAP = float(os.getenv("MIN_MARKET_CAP", "0"))
 MAX_MARKET_CAP = float(os.getenv("MAX_MARKET_CAP", "1000000000"))
 
 CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "900"))
-TIMEFRAME = os.getenv("TIMEFRAME", "4h")
+TIMEFRAME = os.getenv("TIMEFRAME", "1d")
 MAX_COINS = int(os.getenv("MAX_COINS", "300"))
 
 MAX_RSI_BUY = float(os.getenv("MAX_RSI_BUY", "40"))
@@ -59,7 +59,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Early Reversal Bot 4H is running ✅"
+    return f"Early Reversal Bot {TIMEFRAME.upper()} is running ✅"
 
 # =========================
 # FILTERS
@@ -276,19 +276,40 @@ def ema(series, length):
     return series.ewm(span=length, adjust=False).mean()
 
 def rsi(series, period=14):
+    """
+    RSI قريب من TradingView.
+    TradingView يستخدم RMA داخل ta.rsi وليس SMA.
+    """
     delta = series.diff()
-    gain = delta.where(delta > 0, 0).rolling(period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(period).mean()
-    rs = gain / loss.replace(0, math.nan)
+
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+
+    avg_gain = gain.ewm(alpha=1 / period, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1 / period, adjust=False).mean()
+
+    rs = avg_gain / avg_loss.replace(0, math.nan)
+
     return 100 - (100 / (1 + rs))
 
 def stoch_rsi(close):
+    """
+    نفس منطق TradingView:
+    rsi1 = ta.rsi(close, 14)
+    k = ta.sma(ta.stoch(rsi1, rsi1, rsi1, 14), 3)
+    d = ta.sma(k, 3)
+    """
     r = rsi(close, RSI_PERIOD)
+
     min_rsi = r.rolling(STOCH_PERIOD).min()
     max_rsi = r.rolling(STOCH_PERIOD).max()
-    stoch = 100 * (r - min_rsi) / (max_rsi - min_rsi)
+
+    denominator = max_rsi - min_rsi
+    stoch = 100 * (r - min_rsi) / denominator.replace(0, math.nan)
+
     k = stoch.rolling(K_SMOOTH).mean()
     d = k.rolling(D_SMOOTH).mean()
+
     return k, d
 
 def macd_hist(close):
@@ -710,23 +731,39 @@ def analyze_symbol(exchange, symbol, ticker_func, candle_func):
     hist = macd_hist(close)
     ema20 = ema(close, 20)
 
-    k_now = k.iloc[-1]
-    d_now = d.iloc[-1]
-    k_prev = k.iloc[-2]
-    d_prev = d.iloc[-2]
+    # =====================================================
+    # مهم جدًا:
+    # نستخدم آخر شمعة يومية مغلقة بدل الشمعة الحالية المفتوحة.
+    # لذلك نستخدم -2 بدل -1
+    # =====================================================
 
-    hist_now = hist.iloc[-1]
-    hist_prev = hist.iloc[-2]
+    k_now = k.iloc[-2]
+    d_now = d.iloc[-2]
 
-    current_price = close.iloc[-1]
-    current_volume = volume.iloc[-1]
+    k_prev = k.iloc[-3]
+    d_prev = d.iloc[-3]
+
+    hist_now = hist.iloc[-2]
+    hist_prev = hist.iloc[-3]
+
+    current_price = close.iloc[-2]
+    current_volume = volume.iloc[-2]
 
     if current_volume < MIN_CURRENT_CANDLE_VOLUME:
         return None
 
-    avg_volume = volume.iloc[-(VOLUME_LOOKBACK + 1):-1].mean()
+    avg_volume = volume.iloc[-(VOLUME_LOOKBACK + 2):-2].mean()
 
-    if pd.isna(k_now) or pd.isna(d_now) or pd.isna(hist_now) or avg_volume <= 0:
+    if (
+        pd.isna(k_now)
+        or pd.isna(d_now)
+        or pd.isna(k_prev)
+        or pd.isna(d_prev)
+        or pd.isna(hist_now)
+        or pd.isna(hist_prev)
+        or pd.isna(avg_volume)
+        or avg_volume <= 0
+    ):
         return None
 
     volume_ratio = current_volume / avg_volume
@@ -736,7 +773,7 @@ def analyze_symbol(exchange, symbol, ticker_func, candle_func):
     macd_rising = (hist_now > hist_prev) if REQUIRE_MACD_RISING else True
     macd_positive = (hist_now > 0) if REQUIRE_MACD_POSITIVE else True
     volume_ok = volume_ratio >= MIN_VOLUME_RATIO
-    price_above_ema20 = current_price > ema20.iloc[-1]
+    price_above_ema20 = current_price > ema20.iloc[-2]
 
     if not (stoch_cross and stoch_low and macd_rising and macd_positive and volume_ok):
         return None
@@ -1024,7 +1061,7 @@ Max Market Cap: ${MAX_MARKET_CAP:,.0f}
 • MACD Histogram يتحسن: {'مطلوب ✅' if REQUIRE_MACD_RISING else 'غير مطلوب ❌'}
 • MACD Histogram موجب: {'مطلوب ✅' if REQUIRE_MACD_POSITIVE else 'غير مطلوب ❌'}
 • Volume Ratio أعلى من {MIN_VOLUME_RATIO}x
-• حجم الشمعة الحالية أعلى من ${MIN_CURRENT_CANDLE_VOLUME:,.0f}
+• حجم الشمعة اليومية المغلقة أعلى من ${MIN_CURRENT_CANDLE_VOLUME:,.0f}
 • 24H Change أقل من {MAX_24H_CHANGE}%
 • تأكيد الإشارة من عدد منصات: {MIN_EXCHANGE_CONFIRMATIONS}
 • نافذة توافق المنصات: {MULTI_EXCHANGE_WINDOW_MINUTES} دقيقة
@@ -1035,7 +1072,7 @@ Max Market Cap: ${MAX_MARKET_CAP:,.0f}
 • TP3 +10%
 • SL -6%
 
-✅ سيتم إرسال تنبيه عند تحقق كل هدف.
+✅ Stoch RSI محسوب بطريقة قريبة من TradingView\n✅ يعتمد على آخر شمعة يومية مغلقة وليس الشمعة المفتوحة\n✅ سيتم إرسال تنبيه عند تحقق كل هدف.
 """
     send_telegram(msg)
 
