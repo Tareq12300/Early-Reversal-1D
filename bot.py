@@ -23,7 +23,7 @@ CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "900"))
 TIMEFRAME = os.getenv("TIMEFRAME", "1d")
 MAX_COINS = int(os.getenv("MAX_COINS", "300"))
 
-MAX_RSI_BUY = float(os.getenv("MAX_RSI_BUY", "40"))
+MAX_RSI_BUY = float(os.getenv("MAX_RSI_BUY", "45"))
 MIN_VOLUME_RATIO = float(os.getenv("MIN_VOLUME_RATIO", "1.0"))
 MIN_VOLUME_USDT = float(os.getenv("MIN_VOLUME_USDT", "50000"))
 MIN_CURRENT_CANDLE_VOLUME = float(os.getenv("MIN_CURRENT_CANDLE_VOLUME", "8000"))
@@ -34,6 +34,11 @@ RSI_PERIOD = int(os.getenv("RSI_PERIOD", "14"))
 STOCH_PERIOD = int(os.getenv("STOCH_PERIOD", "14"))
 K_SMOOTH = int(os.getenv("K_SMOOTH", "3"))
 D_SMOOTH = int(os.getenv("D_SMOOTH", "3"))
+
+# اقرأ الشمعة الحالية للدخول المبكر أو الشمعة المغلقة للتأكيد
+# true = نفس TradingView اللحظي تقريبًا
+# false = آخر شمعة مغلقة وأكثر ثباتًا
+USE_CURRENT_CANDLE = os.getenv("USE_CURRENT_CANDLE", "true").lower() == "true"
 
 REQUIRE_MACD_RISING = os.getenv("REQUIRE_MACD_RISING", "true").lower() == "true"
 REQUIRE_MACD_POSITIVE = os.getenv("REQUIRE_MACD_POSITIVE", "true").lower() == "true"
@@ -732,27 +737,27 @@ def analyze_symbol(exchange, symbol, ticker_func, candle_func):
     ema20 = ema(close, 20)
 
     # =====================================================
-    # مهم جدًا:
-    # نستخدم آخر شمعة يومية مغلقة بدل الشمعة الحالية المفتوحة.
-    # لذلك نستخدم -2 بدل -1
+    # دخول مبكر:
+    # نستخدم الشمعة الحالية المفتوحة -1 حتى لا تتأخر الإشارة.
+    # مع MAX_RSI_BUY = 45 لتجنب الدخول بعد تجاوز Stoch RSI 50.
     # =====================================================
 
-    k_now = k.iloc[-2]
-    d_now = d.iloc[-2]
+    k_now = k.iloc[-1]
+    d_now = d.iloc[-1]
 
-    k_prev = k.iloc[-3]
-    d_prev = d.iloc[-3]
+    k_prev = k.iloc[-2]
+    d_prev = d.iloc[-2]
 
-    hist_now = hist.iloc[-2]
-    hist_prev = hist.iloc[-3]
+    hist_now = hist.iloc[-1]
+    hist_prev = hist.iloc[-2]
 
-    current_price = close.iloc[-2]
-    current_volume = volume.iloc[-2]
+    current_price = close.iloc[-1]
+    current_volume = volume.iloc[-1]
 
     if current_volume < MIN_CURRENT_CANDLE_VOLUME:
         return None
 
-    avg_volume = volume.iloc[-(VOLUME_LOOKBACK + 2):-2].mean()
+    avg_volume = volume.iloc[-(VOLUME_LOOKBACK + volume_start_offset):-volume_start_offset].mean()
 
     if (
         pd.isna(k_now)
@@ -773,7 +778,7 @@ def analyze_symbol(exchange, symbol, ticker_func, candle_func):
     macd_rising = (hist_now > hist_prev) if REQUIRE_MACD_RISING else True
     macd_positive = (hist_now > 0) if REQUIRE_MACD_POSITIVE else True
     volume_ok = volume_ratio >= MIN_VOLUME_RATIO
-    price_above_ema20 = current_price > ema20.iloc[-2]
+    price_above_ema20 = current_price > ema20.iloc[now_index]
 
     if not (stoch_cross and stoch_low and macd_rising and macd_positive and volume_ok):
         return None
@@ -1061,7 +1066,7 @@ Max Market Cap: ${MAX_MARKET_CAP:,.0f}
 • MACD Histogram يتحسن: {'مطلوب ✅' if REQUIRE_MACD_RISING else 'غير مطلوب ❌'}
 • MACD Histogram موجب: {'مطلوب ✅' if REQUIRE_MACD_POSITIVE else 'غير مطلوب ❌'}
 • Volume Ratio أعلى من {MIN_VOLUME_RATIO}x
-• حجم الشمعة اليومية المغلقة أعلى من ${MIN_CURRENT_CANDLE_VOLUME:,.0f}
+• حجم الشمعة الحالية أعلى من ${MIN_CURRENT_CANDLE_VOLUME:,.0f}
 • 24H Change أقل من {MAX_24H_CHANGE}%
 • تأكيد الإشارة من عدد منصات: {MIN_EXCHANGE_CONFIRMATIONS}
 • نافذة توافق المنصات: {MULTI_EXCHANGE_WINDOW_MINUTES} دقيقة
@@ -1072,7 +1077,7 @@ Max Market Cap: ${MAX_MARKET_CAP:,.0f}
 • TP3 +10%
 • SL -6%
 
-✅ Stoch RSI محسوب بطريقة قريبة من TradingView\n✅ يعتمد على آخر شمعة يومية مغلقة وليس الشمعة المفتوحة\n✅ سيتم إرسال تنبيه عند تحقق كل هدف.
+✅ Stoch RSI محسوب بطريقة قريبة من TradingView\n✅ قراءة الشمعة الحالية: {'مفعلة ✅' if USE_CURRENT_CANDLE else 'غير مفعلة ❌ — يعتمد على آخر شمعة مغلقة'}\n✅ MAX_RSI_BUY يقرأ من Variables وقيمته الحالية: {MAX_RSI_BUY}\n✅ سيتم إرسال تنبيه عند تحقق كل هدف.
 """
     send_telegram(msg)
 
